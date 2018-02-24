@@ -64,11 +64,13 @@ defmodule HtmlToPrismic do
       |> Enum.map(&parse_span/1)
       |> Enum.reject(&is_nil/1)
 
-     %{
-       text: text,
-       type: "paragraph",
-       spans: spans
-     }
+      %{
+        "type" => "paragraph",
+        "content" => %{
+          "text" => text,
+          "spans" => spans,
+        }
+      }
   end
 
   def parse_span(%{tag: "a", attrs: attrs, end: endd, start: start}) do
@@ -76,27 +78,47 @@ defmodule HtmlToPrismic do
     blank_target = Enum.any?(attrs, fn attr  -> match?({"target", "_blank"}, attr) end)
     value = if blank_target do
       %{
-        url: url,
-        targe: "_blank"
+        "url" => url,
+        "target" => "_blank"
       }
     else
       %{
-        url: url
+        "url" => url
       }
     end
 
     %{
-      data: %{
-        type: "Link.web",
-        value: value
-      },
-      end: endd,
-      start: start,
-      type: "hyperlink"
+      "data" => value,
+      "end" => endd,
+      "start" => start,
+      "type" => "hyperlink"
     }
   end
 
   def parse_span(_), do: nil
+
+  def update_jsons(directory_path) do
+    File.ls!(directory_path)
+    |> Enum.filter(& String.ends_with?(&1, ".json"))
+    |> Enum.map(& update_json(directory_path <> &1))
+    |> IO.inspect
+  end
+
+  def update_json(doc) do
+    data =
+      doc
+      |> File.read!
+      |> Jason.decode!
+
+    %{"designer-info" => [%{"content" => %{"text" => text}}]} = data
+
+    html = parse_html(text)
+
+    json = Map.put(data, "designer-info", html)
+    |> Jason.encode!
+
+    File.write!(doc, json)
+  end
 end
 
 HtmlToPrismic.paragraph_to_rich("<a href='dog'>bone</a>")

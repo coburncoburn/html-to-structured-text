@@ -21,7 +21,8 @@ defmodule HtmlToPrismic.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:floki, "~> 0.18.0"}
+      {:floki, "~> 0.18.0"},
+      {:jason, "~> 1.0"}
     ]
   end
 end
